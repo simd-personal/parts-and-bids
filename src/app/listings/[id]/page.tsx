@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button'
+import Image from 'next/image'
 
 // Mock data - replace with actual data from your database
 const mockListing = {
@@ -28,28 +29,40 @@ const mockListing = {
   ],
 }
 
-export default function ListingPage({ params }: { params: { id: string } }) {
+async function getListing(id: string) {
+  // In a real app, this would fetch from your database
+  return mockListing;
+}
+
+export default function ListingPage({
+  params,
+}: {
+  params: { id: string };
+}) {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Image Gallery */}
           <div className="space-y-4">
-            <div className="aspect-w-16 aspect-h-9">
-              <img
+            <div className="aspect-w-16 aspect-h-9 relative h-96">
+              <Image
                 src={mockListing.images[0]}
                 alt={mockListing.title}
-                className="object-cover w-full h-96 rounded-lg"
+                fill
+                className="object-cover rounded-lg"
               />
             </div>
             <div className="grid grid-cols-3 gap-4">
               {mockListing.images.map((image, index) => (
-                <img
-                  key={index}
-                  src={image}
-                  alt={`${mockListing.title} - Image ${index + 1}`}
-                  className="object-cover w-full h-24 rounded-lg cursor-pointer hover:opacity-75"
-                />
+                <div key={index} className="relative h-24">
+                  <Image
+                    src={image}
+                    alt={`${mockListing.title} - Image ${index + 1}`}
+                    fill
+                    className="object-cover rounded-lg cursor-pointer hover:opacity-75"
+                  />
+                </div>
               ))}
             </div>
           </div>

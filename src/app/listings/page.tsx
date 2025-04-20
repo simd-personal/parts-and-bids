@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 
 // Mock data - replace with actual data from your database
@@ -62,11 +63,12 @@ export default function ListingsPage() {
               href={`/listings/${listing.id}`}
               className="bg-white rounded-lg shadow overflow-hidden hover:shadow-lg transition-shadow duration-300"
             >
-              <div className="aspect-w-16 aspect-h-9">
-                <img
+              <div className="aspect-w-16 aspect-h-9 relative h-48">
+                <Image
                   src={listing.image}
                   alt={listing.title}
-                  className="object-cover w-full h-48"
+                  fill
+                  className="object-cover"
                 />
               </div>
               <div className="p-4">
