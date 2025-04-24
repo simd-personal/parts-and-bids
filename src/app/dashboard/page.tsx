@@ -1,173 +1,247 @@
-import { Button } from '@/components/ui/button'
+"use client";
 
-// Mock data - replace with actual data from your database
-const mockUser = {
-  name: 'John Doe',
-  email: 'john@example.com',
-  activeBids: [
-    {
-      id: '1',
-      title: 'BMW M3 E46 OEM Headlights',
-      currentBid: 275.00,
-      highestBid: 300.00,
-      timeLeft: '2 days 5 hours',
-    },
-  ],
-  activeListings: [
-    {
-      id: '2',
-      title: 'Honda Civic Type R Front Bumper',
-      currentPrice: 450.00,
-      bids: 3,
-      timeLeft: '1 day 12 hours',
-    },
-  ],
-  pastPurchases: [
-    {
-      id: '3',
-      title: 'Toyota Supra MK4 Tail Lights',
-      price: 350.00,
-      date: '2024-03-15',
-    },
-  ],
-  pastSales: [
-    {
-      id: '4',
-      title: 'Nissan Skyline R34 Grille',
-      price: 200.00,
-      date: '2024-03-10',
-    },
-  ],
+import { useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
+import Link from "next/link";
+import Image from "next/image";
+import { format } from "date-fns";
+import ProtectedRoute from "@/components/auth/ProtectedRoute";
+
+interface Listing {
+  id: string;
+  title: string;
+  price: number;
+  status: string;
+  endDate: string;
+  images: { url: string }[];
+  _count: {
+    bids: number;
+  };
+}
+
+interface Bid {
+  id: string;
+  amount: number;
+  createdAt: string;
+  listing: {
+    id: string;
+    title: string;
+    price: number;
+    endDate: string;
+    images: { url: string }[];
+  };
 }
 
 export default function DashboardPage() {
+  const { data: session } = useSession();
+  const [activeTab, setActiveTab] = useState<"listings" | "bids">("listings");
+  const [listings, setListings] = useState<Listing[]>([]);
+  const [bids, setBids] = useState<Bid[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [listingsRes, bidsRes] = await Promise.all([
+          fetch("/api/user/listings"),
+          fetch("/api/user/bids"),
+        ]);
+
+        if (listingsRes.ok && bidsRes.ok) {
+          const [listingsData, bidsData] = await Promise.all([
+            listingsRes.json(),
+            bidsRes.json(),
+          ]);
+
+          setListings(listingsData);
+          setBids(bidsData);
+        }
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (session) {
+      fetchData();
+    }
+  }, [session]);
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-          <p className="mt-2 text-sm text-gray-600">
-            Welcome back, {mockUser.name}
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          {/* Active Bids */}
-          <div className="bg-white shadow rounded-lg p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-medium text-gray-900">Active Bids</h2>
-              <Button variant="outline" size="sm">View All</Button>
-            </div>
-            <div className="space-y-4">
-              {mockUser.activeBids.map((bid) => (
-                <div key={bid.id} className="border rounded-lg p-4">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="font-medium text-gray-900">{bid.title}</h3>
-                      <p className="text-sm text-gray-500">Your bid: ${bid.currentBid}</p>
-                    </div>
-                    <span className="text-sm text-gray-500">{bid.timeLeft}</span>
-                  </div>
-                  <div className="mt-2">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-500">Highest bid: ${bid.highestBid}</span>
-                      <Button size="sm">Increase Bid</Button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+    <ProtectedRoute>
+      <div className="min-h-screen bg-gray-100 py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+            <p className="mt-2 text-sm text-gray-600">
+              Manage your listings and bids
+            </p>
           </div>
 
-          {/* Active Listings */}
-          <div className="bg-white shadow rounded-lg p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-medium text-gray-900">Active Listings</h2>
-              <Button variant="outline" size="sm">View All</Button>
+          <div className="bg-white shadow overflow-hidden sm:rounded-lg">
+            <div className="border-b border-gray-200">
+              <nav className="-mb-px flex" aria-label="Tabs">
+                <button
+                  onClick={() => setActiveTab("listings")}
+                  className={`w-1/2 py-4 px-1 text-center border-b-2 font-medium text-sm ${
+                    activeTab === "listings"
+                      ? "border-indigo-500 text-indigo-600"
+                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                  }`}
+                >
+                  My Listings
+                </button>
+                <button
+                  onClick={() => setActiveTab("bids")}
+                  className={`w-1/2 py-4 px-1 text-center border-b-2 font-medium text-sm ${
+                    activeTab === "bids"
+                      ? "border-indigo-500 text-indigo-600"
+                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                  }`}
+                >
+                  My Bids
+                </button>
+              </nav>
             </div>
-            <div className="space-y-4">
-              {mockUser.activeListings.map((listing) => (
-                <div key={listing.id} className="border rounded-lg p-4">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="font-medium text-gray-900">{listing.title}</h3>
-                      <p className="text-sm text-gray-500">Current price: ${listing.currentPrice}</p>
-                    </div>
-                    <span className="text-sm text-gray-500">{listing.timeLeft}</span>
-                  </div>
-                  <div className="mt-2">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-500">{listing.bids} bids</span>
-                      <Button size="sm">View Details</Button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
 
-          {/* Past Purchases */}
-          <div className="bg-white shadow rounded-lg p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-medium text-gray-900">Past Purchases</h2>
-              <Button variant="outline" size="sm">View All</Button>
-            </div>
-            <div className="space-y-4">
-              {mockUser.pastPurchases.map((purchase) => (
-                <div key={purchase.id} className="border rounded-lg p-4">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="font-medium text-gray-900">{purchase.title}</h3>
-                      <p className="text-sm text-gray-500">Price: ${purchase.price}</p>
+            {loading ? (
+              <div className="p-4">
+                <div className="animate-pulse space-y-4">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="flex items-center space-x-4">
+                      <div className="w-16 h-16 bg-gray-200 rounded"></div>
+                      <div className="flex-1 space-y-2">
+                        <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                        <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                      </div>
                     </div>
-                    <span className="text-sm text-gray-500">{purchase.date}</span>
-                  </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Past Sales */}
-          <div className="bg-white shadow rounded-lg p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-medium text-gray-900">Past Sales</h2>
-              <Button variant="outline" size="sm">View All</Button>
-            </div>
-            <div className="space-y-4">
-              {mockUser.pastSales.map((sale) => (
-                <div key={sale.id} className="border rounded-lg p-4">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="font-medium text-gray-900">{sale.title}</h3>
-                      <p className="text-sm text-gray-500">Price: ${sale.price}</p>
+              </div>
+            ) : activeTab === "listings" ? (
+              <div className="divide-y divide-gray-200">
+                {listings.length === 0 ? (
+                  <div className="p-4 text-center">
+                    <p className="text-gray-500">No listings yet</p>
+                    <Link
+                      href="/sell"
+                      className="mt-2 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700"
+                    >
+                      Create a Listing
+                    </Link>
+                  </div>
+                ) : (
+                  listings.map((listing) => (
+                    <div key={listing.id} className="p-4 hover:bg-gray-50">
+                      <Link href={`/listings/${listing.id}`}>
+                        <div className="flex items-center space-x-4">
+                          <div className="flex-shrink-0 w-16 h-16 relative">
+                            {listing.images[0] ? (
+                              <Image
+                                src={listing.images[0].url}
+                                alt={listing.title}
+                                fill
+                                className="object-cover rounded"
+                              />
+                            ) : (
+                              <div className="w-full h-full bg-gray-200 rounded" />
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-900 truncate">
+                              {listing.title}
+                            </p>
+                            <p className="text-sm text-gray-500">
+                              ${listing.price.toLocaleString()}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {listing._count.bids} bids · Ends{" "}
+                              {format(new Date(listing.endDate), "PPp")}
+                            </p>
+                          </div>
+                          <div>
+                            <span
+                              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                listing.status === "active"
+                                  ? "bg-green-100 text-green-800"
+                                  : "bg-red-100 text-red-800"
+                              }`}
+                            >
+                              {listing.status}
+                            </span>
+                          </div>
+                        </div>
+                      </Link>
                     </div>
-                    <span className="text-sm text-gray-500">{sale.date}</span>
+                  ))
+                )}
+              </div>
+            ) : (
+              <div className="divide-y divide-gray-200">
+                {bids.length === 0 ? (
+                  <div className="p-4 text-center">
+                    <p className="text-gray-500">No bids yet</p>
+                    <Link
+                      href="/"
+                      className="mt-2 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700"
+                    >
+                      Browse Listings
+                    </Link>
                   </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Account Settings */}
-        <div className="mt-8 bg-white shadow rounded-lg p-6">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">Account Settings</h2>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Name</label>
-              <p className="mt-1 text-sm text-gray-900">{mockUser.name}</p>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Email</label>
-              <p className="mt-1 text-sm text-gray-900">{mockUser.email}</p>
-            </div>
-            <div className="flex space-x-4">
-              <Button variant="outline">Change Password</Button>
-              <Button variant="outline">Update Payment Method</Button>
-            </div>
+                ) : (
+                  bids.map((bid) => (
+                    <div key={bid.id} className="p-4 hover:bg-gray-50">
+                      <Link href={`/listings/${bid.listing.id}`}>
+                        <div className="flex items-center space-x-4">
+                          <div className="flex-shrink-0 w-16 h-16 relative">
+                            {bid.listing.images[0] ? (
+                              <Image
+                                src={bid.listing.images[0].url}
+                                alt={bid.listing.title}
+                                fill
+                                className="object-cover rounded"
+                              />
+                            ) : (
+                              <div className="w-full h-full bg-gray-200 rounded" />
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-900 truncate">
+                              {bid.listing.title}
+                            </p>
+                            <p className="text-sm text-gray-500">
+                              Your bid: ${bid.amount.toLocaleString()}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              Bid placed{" "}
+                              {format(new Date(bid.createdAt), "PPp")} · Ends{" "}
+                              {format(new Date(bid.listing.endDate), "PPp")}
+                            </p>
+                          </div>
+                          <div>
+                            <span
+                              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                bid.amount === bid.listing.price
+                                  ? "bg-green-100 text-green-800"
+                                  : "bg-gray-100 text-gray-800"
+                              }`}
+                            >
+                              {bid.amount === bid.listing.price
+                                ? "Highest Bid"
+                                : "Outbid"}
+                            </span>
+                          </div>
+                        </div>
+                      </Link>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
-    </div>
-  )
+    </ProtectedRoute>
+  );
 } 

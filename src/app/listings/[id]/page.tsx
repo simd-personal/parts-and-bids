@@ -1,133 +1,172 @@
-import { Button } from '@/components/ui/button'
-import Image from 'next/image'
+"use client";
 
-// Mock data - replace with actual data from your database
-const mockListing = {
-  id: '1',
-  title: 'BMW M3 E46 OEM Headlights',
-  description: 'Original equipment manufacturer headlights for BMW M3 E46. In excellent condition with no cracks or damage. Includes all mounting hardware.',
-  price: 299.99,
-  images: [
-    'https://via.placeholder.com/800x600',
-    'https://via.placeholder.com/800x600',
-    'https://via.placeholder.com/800x600',
-  ],
-  make: 'BMW',
-  model: 'M3',
-  year: 2004,
-  condition: 'Used',
-  location: 'Los Angeles, CA',
-  timeLeft: '2 days 5 hours',
+import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
+import GalleryView from "@/components/GalleryView";
+import { format } from "date-fns";
+
+interface Listing {
+  id: string;
+  title: string;
+  description: string;
+  price: number;
+  category: string;
+  make: string;
+  model: string;
+  year: number;
+  condition: string;
+  location: string;
+  endDate: string;
+  images: { url: string; key: string }[];
   seller: {
-    name: 'John Doe',
-    rating: 4.8,
-    totalSales: 42,
-  },
-  bids: [
-    { amount: 250.00, user: 'Jane Smith', time: '2 hours ago' },
-    { amount: 275.00, user: 'Mike Johnson', time: '1 hour ago' },
-  ],
+    name: string;
+    email: string;
+  };
 }
 
-async function getListing(id: string) {
-  // In a real app, this would fetch from your database
-  return mockListing;
-}
+export default function ListingDetailPage() {
+  const params = useParams();
+  const [listing, setListing] = useState<Listing | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-export default function ListingPage({
-  params,
-}: {
-  params: { id: string };
-}) {
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Image Gallery */}
-          <div className="space-y-4">
-            <div className="aspect-w-16 aspect-h-9 relative h-96">
-              <Image
-                src={mockListing.images[0]}
-                alt={mockListing.title}
-                fill
-                className="object-cover rounded-lg"
-              />
-            </div>
-            <div className="grid grid-cols-3 gap-4">
-              {mockListing.images.map((image, index) => (
-                <div key={index} className="relative h-24">
-                  <Image
-                    src={image}
-                    alt={`${mockListing.title} - Image ${index + 1}`}
-                    fill
-                    className="object-cover rounded-lg cursor-pointer hover:opacity-75"
-                  />
-                </div>
-              ))}
+  useEffect(() => {
+    const fetchListing = async () => {
+      try {
+        const response = await fetch(`/api/listings/${params.id}`);
+        if (!response.ok) {
+          throw new Error("Failed to fetch listing");
+        }
+        const data = await response.json();
+        setListing(data);
+      } catch (err) {
+        setError("Failed to load listing");
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchListing();
+  }, [params.id]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-100 py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="animate-pulse">
+            <div className="h-8 bg-gray-200 rounded w-3/4 mb-4"></div>
+            <div className="h-4 bg-gray-200 rounded w-1/2 mb-8"></div>
+            <div className="h-96 bg-gray-200 rounded mb-8"></div>
+            <div className="space-y-4">
+              <div className="h-4 bg-gray-200 rounded w-full"></div>
+              <div className="h-4 bg-gray-200 rounded w-5/6"></div>
+              <div className="h-4 bg-gray-200 rounded w-4/6"></div>
             </div>
           </div>
+        </div>
+      </div>
+    );
+  }
 
-          {/* Listing Details */}
-          <div className="space-y-6">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">{mockListing.title}</h1>
-              <div className="mt-2 flex items-center space-x-4">
-                <span className="text-2xl font-bold text-primary">${mockListing.price}</span>
-                <span className="text-sm text-gray-500">{mockListing.timeLeft} left</span>
+  if (error || !listing) {
+    return (
+      <div className="min-h-screen bg-gray-100 py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="bg-white shadow sm:rounded-lg">
+            <div className="px-4 py-5 sm:p-6">
+              <h3 className="text-lg font-medium leading-6 text-gray-900">
+                Error
+              </h3>
+              <div className="mt-2 max-w-xl text-sm text-gray-500">
+                <p>{error || "Listing not found"}</p>
               </div>
             </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
-            <div className="border-t border-b py-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm text-gray-500">Make</p>
-                  <p className="font-medium">{mockListing.make}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Model</p>
-                  <p className="font-medium">{mockListing.model}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Year</p>
-                  <p className="font-medium">{mockListing.year}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Condition</p>
-                  <p className="font-medium">{mockListing.condition}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Location</p>
-                  <p className="font-medium">{mockListing.location}</p>
-                </div>
+  return (
+    <div className="min-h-screen bg-gray-100 py-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="bg-white shadow sm:rounded-lg overflow-hidden">
+          <div className="px-4 py-5 sm:p-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div>
+                <GalleryView images={listing.images} />
               </div>
-            </div>
+              <div className="space-y-6">
+                <div>
+                  <h1 className="text-3xl font-bold text-gray-900">
+                    {listing.title}
+                  </h1>
+                  <p className="mt-2 text-2xl font-semibold text-indigo-600">
+                    ${listing.price.toLocaleString()}
+                  </p>
+                </div>
 
-            <div>
-              <h2 className="text-lg font-semibold mb-2">Description</h2>
-              <p className="text-gray-600">{mockListing.description}</p>
-            </div>
-
-            <div>
-              <h2 className="text-lg font-semibold mb-2">Bidding History</h2>
-              <div className="space-y-2">
-                {mockListing.bids.map((bid, index) => (
-                  <div key={index} className="flex justify-between items-center">
-                    <div>
-                      <p className="font-medium">{bid.user}</p>
-                      <p className="text-sm text-gray-500">{bid.time}</p>
-                    </div>
-                    <span className="font-bold">${bid.amount}</span>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Category</p>
+                    <p className="mt-1 text-sm text-gray-900">
+                      {listing.category}
+                    </p>
                   </div>
-                ))}
-              </div>
-            </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Condition</p>
+                    <p className="mt-1 text-sm text-gray-900">
+                      {listing.condition}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Make</p>
+                    <p className="mt-1 text-sm text-gray-900">{listing.make}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Model</p>
+                    <p className="mt-1 text-sm text-gray-900">{listing.model}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Year</p>
+                    <p className="mt-1 text-sm text-gray-900">{listing.year}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Location</p>
+                    <p className="mt-1 text-sm text-gray-900">
+                      {listing.location}
+                    </p>
+                  </div>
+                </div>
 
-            <div className="pt-4">
-              <Button className="w-full">Place Bid</Button>
+                <div>
+                  <p className="text-sm font-medium text-gray-500">Description</p>
+                  <p className="mt-1 text-sm text-gray-900">
+                    {listing.description}
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-sm font-medium text-gray-500">Seller</p>
+                  <p className="mt-1 text-sm text-gray-900">
+                    {listing.seller.name}
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-sm font-medium text-gray-500">
+                    Auction Ends
+                  </p>
+                  <p className="mt-1 text-sm text-gray-900">
+                    {format(new Date(listing.endDate), "PPpp")}
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
     </div>
-  )
+  );
 } 
