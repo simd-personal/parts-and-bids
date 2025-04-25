@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter, ReadonlyURLSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 interface Listing {
@@ -22,7 +22,14 @@ interface Listing {
 }
 
 interface ListingsContentProps {
-  searchParams: ReadonlyURLSearchParams;
+  searchParams: {
+    category?: string;
+    make?: string;
+    model?: string;
+    minPrice?: string;
+    maxPrice?: string;
+    condition?: string;
+  };
 }
 
 export default function ListingsContent({ searchParams }: ListingsContentProps) {
@@ -32,12 +39,12 @@ export default function ListingsContent({ searchParams }: ListingsContentProps) 
   const router = useRouter();
 
   const [filters, setFilters] = useState({
-    category: searchParams.get("category") || "",
-    make: searchParams.get("make") || "",
-    model: searchParams.get("model") || "",
-    minPrice: searchParams.get("minPrice") || "",
-    maxPrice: searchParams.get("maxPrice") || "",
-    condition: searchParams.get("condition") || "",
+    category: searchParams.category || "",
+    make: searchParams.make || "",
+    model: searchParams.model || "",
+    minPrice: searchParams.minPrice || "",
+    maxPrice: searchParams.maxPrice || "",
+    condition: searchParams.condition || "",
   });
 
   useEffect(() => {

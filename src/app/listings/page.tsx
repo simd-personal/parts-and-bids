@@ -1,12 +1,18 @@
-"use client";
-
 import { Suspense } from "react";
-import { useSearchParams } from "next/navigation";
 import ListingsContent from "@/components/listings/ListingsContent";
 
-export default function ListingsPage() {
-  const searchParams = useSearchParams();
+interface PageProps {
+  searchParams: {
+    category?: string;
+    make?: string;
+    model?: string;
+    minPrice?: string;
+    maxPrice?: string;
+    condition?: string;
+  };
+}
 
+export default function ListingsPage({ searchParams }: PageProps) {
   return (
     <Suspense
       fallback={
