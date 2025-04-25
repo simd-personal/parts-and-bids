@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="200" height="40" viewBox="0 0 200 40" version="1.1" xmlns="http://www.w3.org/2000/svg">
+    <!-- Gear icon -->
+    <g transform="translate(0, 4)">
+        <path d="M16 0c-1.104 0-2 .896-2 2v2.062A12.026 12.026 0 0 0 9.938 6L8.5 4.562a2 2 0 0 0-2.828 0L3.562 6.672a2 2 0 0 0 0 2.828L5 11.062A12.026 12.026 0 0 0 4.062 14H2c-1.104 0-2 .896-2 2v4c0 1.104.896 2 2 2h2.062A12.026 12.026 0 0 0 6 26.062l-1.438 1.438a2 2 0 0 0 0 2.828l2.11 2.11a2 2 0 0 0 2.828 0L11.062 31A12.026 12.026 0 0 0 14 31.938V34c0 1.104.896 2 2 2h4c1.104 0 2-.896 2-2v-2.062A12.026 12.026 0 0 0 26.062 30l1.438 1.438a2 2 0 0 0 2.828 0l2.11-2.11a2 2 0 0 0 0-2.828L31 24.938A12.026 12.026 0 0 0 31.938 22H34c1.104 0 2-.896 2-2v-4c0-1.104-.896-2-2-2h-2.062A12.026 12.026 0 0 0 30 9.938l1.438-1.438a2 2 0 0 0 0-2.828l-2.11-2.11a2 2 0 0 0-2.828 0L24.938 5A12.026 12.026 0 0 0 22 4.062V2c0-1.104-.896-2-2-2h-4zm2 8a8 8 0 1 1 0 16 8 8 0 0 1 0-16z" 
+              fill="#4F46E5"/>
+    </g>
+    
+    <!-- Text "Parts" -->
+    <text x="45" y="26" font-family="Inter, system-ui, sans-serif" font-size="24" font-weight="600" fill="#1F2937">
+        Parts
+    </text>
+    
+    <!-- Ampersand symbol -->
+    <text x="105" y="26" font-family="Inter, system-ui, sans-serif" font-size="24" font-weight="300" fill="#6B7280">
+        &amp;
+    </text>
+    
+    <!-- Text "Bids" -->
+    <text x="130" y="26" font-family="Inter, system-ui, sans-serif" font-size="24" font-weight="600" fill="#4F46E5">
+        Bids
+    </text>
+</svg> 
