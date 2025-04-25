@@ -9,12 +9,17 @@ export async function GET(
   request: Request,
   { params }: { params: { id: string } }
 ) {
+  if (!params?.id) {
+    return NextResponse.json({ error: "Listing ID is required" }, { status: 400 });
+  }
+
   try {
     const listing = await prisma.listing.findUnique({
       where: { id: params.id },
       include: {
         seller: {
           select: {
+            id: true,
             name: true,
             email: true,
           },

@@ -94,10 +94,10 @@ model VerificationToken {
 
 model Image {
   id        String   @id @default(cuid())
-  key       String
-  url       String   @default("")
-  listingId String
-  listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  key       String
+  isDefault Boolean  @default(false)
+  listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  listingId String
 } 

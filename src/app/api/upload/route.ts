@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../auth/[...nextauth]/route";
 import { S3Client, PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
+import { PrismaClient } from "@prisma/client";
+
+const prisma = new PrismaClient();
 
 const s3Client = new S3Client({
   region: process.env.AWS_REGION!,
@@ -14,35 +17,51 @@ const s3Client = new S3Client({
 export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions);
+
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json(
+        { error: "You must be logged in to upload images" },
+        { status: 401 }
+      );
     }
 
     const formData = await request.formData();
     const file = formData.get("file") as File;
+    const key = formData.get("key") as string;
+    const listingId = formData.get("listingId") as string;
+    const isDefault = formData.get("isDefault") === "true";
 
-    if (!file) {
+    if (!file || !key || !listingId) {
       return NextResponse.json(
-        { error: "No file provided" },
+        { error: "Missing required fields" },
         { status: 400 }
       );
     }
 
-    const buffer = await file.arrayBuffer();
-    const key = `listings/${session.user.id}/${Date.now()}-${file.name}`;
+    const buffer = Buffer.from(await file.arrayBuffer());
 
+    // Upload to S3
     await s3Client.send(
       new PutObjectCommand({
-        Bucket: process.env.AWS_BUCKET_NAME!,
+        Bucket: process.env.AWS_BUCKET_NAME,
         Key: key,
-        Body: Buffer.from(buffer),
+        Body: buffer,
         ContentType: file.type,
       })
     );
 
-    const url = `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`;
+    // Create image record in database
+    const image = await prisma.image.create({
+      data: {
+        key,
+        isDefault,
+        listingId,
+      },
+    });
 
-    return NextResponse.json({ url, key });
+    console.log("Created image record:", image);
+
+    return NextResponse.json({ success: true, image });
   } catch (error) {
     console.error("Error uploading file:", error);
     return NextResponse.json(

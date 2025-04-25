@@ -4,19 +4,98 @@ import { useState, useCallback } from "react";
 import { useDropzone } from "react-dropzone";
 import Image from "next/image";
 import toast from "react-hot-toast";
+import { StarIcon as StarOutline } from "@heroicons/react/24/outline";
+import { StarIcon as StarSolid } from "@heroicons/react/24/solid";
 import { optimizeImage } from "@/utils/imageOptimization";
 import ImageCropper from "./ImageCropper";
 
 interface ImageUploadProps {
-  onUploadComplete: (images: { url: string; key: string }[]) => void;
+  onUploadComplete: (images: { url: string; key: string; isDefault?: boolean }[]) => void;
   maxFiles?: number;
 }
 
 export default function ImageUpload({ onUploadComplete, maxFiles = 5 }: ImageUploadProps) {
   const [uploading, setUploading] = useState(false);
-  const [previews, setPreviews] = useState<{ url: string; key: string }[]>([]);
+  const [previews, setPreviews] = useState<{ url: string; key: string; isDefault?: boolean }[]>([]);
   const [fileToCrop, setFileToCrop] = useState<File | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
+  const MAX_RETRIES = 3;
+  const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB in bytes
+
+  const handleUpload = async (file: File) => {
+    setUploading(true);
+    setUploadError(null);
+
+    try {
+      // Optimize image
+      const optimizedFile = await optimizeImage(file);
+
+      // Create form data
+      const formData = new FormData();
+      formData.append("file", optimizedFile);
+
+      // Upload to API with retry logic
+      let response = null;
+      let attempt = 0;
+
+      while (!response && attempt < MAX_RETRIES) {
+        try {
+          response = await fetch("/api/upload", {
+            method: "POST",
+            body: formData,
+          });
+
+          if (!response.ok) {
+            throw new Error("Upload failed");
+          }
+        } catch (error) {
+          attempt++;
+          if (attempt === MAX_RETRIES) {
+            throw error;
+          }
+          // Wait before retrying (exponential backoff)
+          await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
+        }
+      }
+
+      if (!response) {
+        throw new Error("Upload failed after retries");
+      }
+
+      const { url, key } = await response.json();
+      // Set as default if it's the first image
+      const isDefault = previews.length === 0;
+      const updatedPreviews = [...previews, { url, key, isDefault }];
+      setPreviews(updatedPreviews);
+      onUploadComplete(updatedPreviews);
+      toast.success("Image uploaded successfully!");
+    } catch (error) {
+      console.error("Upload error:", error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to upload image";
+      setUploadError(errorMessage);
+      toast.error(errorMessage);
+      
+      // Increment retry count and try again if under limit
+      if (retryCount < MAX_RETRIES) {
+        setRetryCount(prev => prev + 1);
+        handleUpload(file);
+        return;
+      }
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const setDefaultImage = (index: number) => {
+    const updatedPreviews = previews.map((preview, i) => ({
+      ...preview,
+      isDefault: i === index
+    }));
+    setPreviews(updatedPreviews);
+    onUploadComplete(updatedPreviews);
+    toast.success("Default image updated");
+  };
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     if (acceptedFiles.length === 0) return;
@@ -27,56 +106,20 @@ export default function ImageUpload({ onUploadComplete, maxFiles = 5 }: ImageUpl
     }
 
     const file = acceptedFiles[0];
-    // Check file size (5MB limit)
-    if (file && file.size > 5 * 1024 * 1024) {
-      toast.error("Image size must be less than 5MB");
+    // Check file size (20MB limit)
+    if (file && file.size > MAX_FILE_SIZE) {
+      toast.error("Image size must be less than 20MB");
       return;
     }
 
     setUploadError(null);
+    setRetryCount(0);
     setFileToCrop(file);
   }, [previews, maxFiles]);
 
   const handleCropComplete = async (croppedFile: File) => {
     setFileToCrop(null);
-    setUploading(true);
-    setUploadError(null);
-    const newPreviews: { url: string; key: string }[] = [];
-
-    try {
-      // Optimize image
-      const optimizedFile = await optimizeImage(croppedFile);
-
-      // Create form data
-      const formData = new FormData();
-      formData.append("file", optimizedFile);
-
-      // Upload to API
-      const response = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Failed to upload image");
-      }
-
-      const { url, key } = await response.json();
-      newPreviews.push({ url, key });
-
-      const updatedPreviews = [...previews, ...newPreviews];
-      setPreviews(updatedPreviews);
-      onUploadComplete(updatedPreviews);
-      toast.success("Image uploaded successfully!");
-    } catch (error) {
-      console.error("Upload error:", error);
-      const errorMessage = error instanceof Error ? error.message : "Failed to upload image";
-      setUploadError(errorMessage);
-      toast.error(errorMessage);
-    } finally {
-      setUploading(false);
-    }
+    await handleUpload(croppedFile);
   };
 
   const handleCropCancel = () => {
@@ -88,7 +131,8 @@ export default function ImageUpload({ onUploadComplete, maxFiles = 5 }: ImageUpl
     accept: {
       "image/*": [".jpeg", ".jpg", ".png", ".webp"],
     },
-    maxSize: 5 * 1024 * 1024, // 5MB
+    maxSize: MAX_FILE_SIZE,
+    multiple: false
   });
 
   const removeImage = async (index: number) => {
@@ -151,14 +195,14 @@ export default function ImageUpload({ onUploadComplete, maxFiles = 5 }: ImageUpl
               : "Drag and drop images here, or click to select files"}
           </p>
           <p className="text-xs text-gray-500">
-            PNG, JPG, WEBP up to 5MB
+            PNG, JPG, WEBP up to 20MB
           </p>
         </div>
       </div>
 
       {uploading && (
         <div className="text-center text-sm text-gray-500">
-          Uploading image...
+          Uploading image... {retryCount > 0 && `(Attempt ${retryCount + 1}/${MAX_RETRIES})`}
         </div>
       )}
 
@@ -179,34 +223,55 @@ export default function ImageUpload({ onUploadComplete, maxFiles = 5 }: ImageUpl
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {previews.map((preview, index) => (
             <div key={index} className="relative group">
-              <div className="aspect-w-1 aspect-h-1 w-full overflow-hidden rounded-lg">
+              <div className="aspect-w-1 aspect-h-1 w-full overflow-hidden rounded-lg bg-gray-100">
                 <Image
                   src={preview.url}
                   alt={`Upload ${index + 1}`}
                   width={200}
                   height={200}
                   className="object-cover"
+                  unoptimized={preview.url.startsWith('data:')}
                 />
+                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40">
+                  <button
+                    type="button"
+                    onClick={() => setDefaultImage(index)}
+                    className="p-1 text-white hover:text-yellow-400 transition-colors"
+                    title={preview.isDefault ? "Default image" : "Set as default"}
+                  >
+                    {preview.isDefault ? (
+                      <StarSolid className="h-6 w-6 text-yellow-400" />
+                    ) : (
+                      <StarOutline className="h-6 w-6" />
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => removeImage(index)}
+                    className="p-1 text-white hover:text-red-400 transition-colors ml-2"
+                    title="Remove image"
+                  >
+                    <svg
+                      className="h-6 w-6"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
+                </div>
+                {preview.isDefault && (
+                  <div className="absolute top-2 left-2">
+                    <StarSolid className="h-5 w-5 text-yellow-400" />
+                  </div>
+                )}
               </div>
-              <button
-                type="button"
-                onClick={() => removeImage(index)}
-                className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-              >
-                <svg
-                  className="h-4 w-4"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
             </div>
           ))}
         </div>

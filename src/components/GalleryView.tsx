@@ -86,7 +86,10 @@ export default function GalleryView({ images }: GalleryViewProps) {
       <div className="relative">
         <div 
           className="relative bg-gray-100 rounded-lg overflow-hidden cursor-pointer"
-          style={{ minHeight: '400px' }}
+          style={{ 
+            minHeight: '400px',
+            maxHeight: '600px'
+          }}
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
@@ -113,19 +116,29 @@ export default function GalleryView({ images }: GalleryViewProps) {
               </div>
             </div>
           )}
-          <div className="relative w-full h-full" style={{ minHeight: '400px' }}>
-            <Image
-              src={images[currentIndex].url}
-              alt={`Gallery image ${currentIndex + 1}`}
-              fill
-              className={`object-contain transition-opacity duration-300 ${
-                isLoading ? 'opacity-0' : 'opacity-100'
-              }`}
-              priority
-              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 70vw"
-              quality={85}
-              unoptimized={images[currentIndex].url.startsWith('data:')}
-            />
+          <div className="relative w-full h-full flex items-center justify-center" style={{ minHeight: '400px', maxHeight: '600px' }}>
+            <div className="relative w-full h-full" style={{ 
+              maxWidth: '100%',
+              maxHeight: '100%',
+              margin: 'auto'
+            }}>
+              <Image
+                src={images[currentIndex].url}
+                alt={`Gallery image ${currentIndex + 1}`}
+                fill
+                className={`transition-opacity duration-300 ${
+                  isLoading ? 'opacity-0' : 'opacity-100'
+                }`}
+                style={{
+                  objectFit: 'contain',
+                  objectPosition: 'center'
+                }}
+                priority
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 70vw"
+                quality={85}
+                unoptimized={images[currentIndex].url.startsWith('data:')}
+              />
+            </div>
           </div>
         </div>
 
@@ -184,16 +197,21 @@ export default function GalleryView({ images }: GalleryViewProps) {
                 index === currentIndex ? "ring-2 ring-indigo-500" : ""
               }`}
             >
-              <Image
-                src={image.url}
-                alt={`Thumbnail ${index + 1}`}
-                fill
-                className="object-cover"
-                sizes="(max-width: 768px) 25vw, 20vw"
-                loading="lazy"
-                quality={60}
-                unoptimized={image.url.startsWith('data:')}
-              />
+              <div className="relative w-full h-full">
+                <Image
+                  src={image.url}
+                  alt={`Thumbnail ${index + 1}`}
+                  fill
+                  className="object-cover"
+                  style={{
+                    objectPosition: 'center'
+                  }}
+                  sizes="(max-width: 768px) 25vw, 20vw"
+                  loading="lazy"
+                  quality={60}
+                  unoptimized={image.url.startsWith('data:')}
+                />
+              </div>
             </button>
           ))}
         </div>
@@ -205,7 +223,7 @@ export default function GalleryView({ images }: GalleryViewProps) {
           className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center"
           onClick={() => setIsModalOpen(false)}
         >
-          <div className="relative w-full h-full flex items-center justify-center">
+          <div className="relative w-full h-full flex items-center justify-center p-4">
             <button
               onClick={() => setIsModalOpen(false)}
               className="absolute top-4 right-4 text-white hover:text-gray-300"
@@ -214,17 +232,26 @@ export default function GalleryView({ images }: GalleryViewProps) {
               <XMarkIcon className="h-8 w-8" />
             </button>
             
-            <div className="relative w-full h-full max-w-7xl max-h-[90vh] mx-4">
-              <Image
-                src={images[currentIndex].url}
-                alt={`Full screen image ${currentIndex + 1}`}
-                fill
-                className="object-contain"
-                quality={100}
-                priority
-                sizes="100vw"
-                unoptimized={images[currentIndex].url.startsWith('data:')}
-              />
+            <div className="relative w-full h-full flex items-center justify-center">
+              <div className="relative" style={{ 
+                width: '100%',
+                height: '90vh',
+                maxWidth: '90vw'
+              }}>
+                <Image
+                  src={images[currentIndex].url}
+                  alt={`Full screen image ${currentIndex + 1}`}
+                  fill
+                  className="object-contain"
+                  style={{
+                    objectPosition: 'center'
+                  }}
+                  quality={100}
+                  priority
+                  sizes="100vw"
+                  unoptimized={images[currentIndex].url.startsWith('data:')}
+                />
+              </div>
             </div>
 
             {images.length > 1 && (
