@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useRouter, ReadonlyURLSearchParams } from "next/navigation";
 import Link from "next/link";
 
 interface Listing {
@@ -21,11 +21,14 @@ interface Listing {
   createdAt: string;
 }
 
-export default function ListingsContent() {
+interface ListingsContentProps {
+  searchParams: ReadonlyURLSearchParams;
+}
+
+export default function ListingsContent({ searchParams }: ListingsContentProps) {
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const searchParams = useSearchParams();
   const router = useRouter();
 
   const [filters, setFilters] = useState({

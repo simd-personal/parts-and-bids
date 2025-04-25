@@ -1,9 +1,12 @@
 "use client";
 
 import { Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import ListingsContent from "@/components/listings/ListingsContent";
 
 export default function ListingsPage() {
+  const searchParams = useSearchParams();
+
   return (
     <Suspense
       fallback={
@@ -12,7 +15,7 @@ export default function ListingsPage() {
         </div>
       }
     >
-      <ListingsContent />
+      <ListingsContent searchParams={searchParams} />
     </Suspense>
   );
 } 
