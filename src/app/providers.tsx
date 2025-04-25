@@ -5,9 +5,11 @@ import { Toaster } from "react-hot-toast";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <SessionProvider>
-      {children}
+    <>
+      <SessionProvider>
+        {children}
+      </SessionProvider>
       <Toaster position="bottom-right" />
-    </SessionProvider>
+    </>
   );
 } 
